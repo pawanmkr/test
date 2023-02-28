@@ -18,7 +18,7 @@ var updatecount=0;
 var different=0;
 var regarray=[]
 
-function waitTwoSeconds(time) {
+function wait(time) {
     return new Promise(resolve => {
       setTimeout(function() {
         resolve();
@@ -57,19 +57,19 @@ async function insert(ic) {
 
                     where registration_no = $6 returning *;
             `, [insurance_type, company_name, from, upto, policy_no, single.rows[0].registration_no])
-            console.log(updated.rows[0])
+            // console.log(updated.rows[0])
         } else { // if doesn't exists then skip and count how many rows are different
             different++
             regarray.push[regno]
             console.log(regno)
-            await waitTwoSeconds(10)
+            await wait(100)
         }
     }
     console.log("different: " + different)
     console.log(regarray)
 }
 
-// insert(ic);
+insert(ic);
 
 
 

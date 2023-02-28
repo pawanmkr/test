@@ -21,20 +21,23 @@ function wait(time) {
 
 async function distribute_rows() {
     try {
+        // global variables
+        var row_count, owner_id, financier_id, insurance_id;
+        let user_list = [], financier_list =[], insurance_list=[];
 
         // step 1: get total rows
         try {
-            let row_count = await db.query(`
+            row_count = await db.query(`
                 select * from temp;
             `)
-            row_count=row_count.rowCount()
+            row_count=row_count.rowCount
         } catch (error) {
             handleError(error, "failed getting temp row count")
         }
 
         // step 2
         try {
-            for (let id = 1; i <= row_count; id++) {
+            for (let id = 1; id <= row_count; id++) {
                 
                 // step 3
                 let single_row, check_financed = true, check_has_insurance = true;
@@ -42,7 +45,7 @@ async function distribute_rows() {
                     single_row = await db.query(`
                         select * from temp where id=$1;`, [id]
                     );
-                    console.log(single_row)
+                    console.log(single_row.rows[0])
                     
                     // check if financed or not
                     if (single_row.rows[0].financier_name == null) {
@@ -88,73 +91,88 @@ async function distribute_rows() {
 
                 // step 4: add row to usr table
                 try {
-                    const back = await db.query(`
-                        insert into vehicle (
-                            name,
-                            father_name,
-                            mobile_no,
-                            permanent_address
+                    if (single_row.rows[0].owner_name != null) {
+                        const back = await db.query(`
+                            insert into "user" (
+                                name,
+                                father_name,
+                                mobile_no,
+                                permanent_address
+                            )
+                            values (
+                                $1, $2, $3, $4
+                            )
+                            returning *;
+                        `, [owner_name, father_name, mobile, permanent_address]
                         )
-                        values (
-                            $1, $2, $3, $4
-                        )
-                        returning *;
-                    `, [owner_name, father_name, mobile, permanent_address]
-                    )
-                    owner_id = back.rows[0].id;
+                        owner_id = back.rows[0].id;
+                        console.log(back.rows[0])   
+                    } else {
+                        user_list.push(single_row.rows[0].id)
+                    }
                 } catch (error) {
                     handleError(error, `failed adding row in user table`)
                 }
 
                  // step 5: add rows to financier table
                 try {
-                    const back = await db.query(`
-                        insert into financier (
-                            name,
-                            address,
-                            hypothecation_date
+                    if (single_row.rows[0].financier_name != null) {
+                        const back = await db.query(`
+                            insert into financier (
+                                name,
+                                address,
+                                hypothecation_date
+                            )
+                            values (
+                                $1, $2, $3
+                            )
+                            returning *;
+                        `, [financier_name, financier_address, hypo_date]
                         )
-                        values (
-                            $1, $2, $3
-                        )
-                        returning *;
-                    `, [financier_name, financier_address, hypo_date]
-                    )
-                    financier_id = back.rows[0].id;
+                        financier_id = back.rows[0].id;
+                        console.log(back.rows[0])
+                    } else {
+                        financier_list.push(single_row.rows[0].id)
+                    }
                 } catch (error) {
                     handleError(error, `failed adding row in financier table`)
                 }
 
                 // step 5: add rows to insurance table
                 try {
-                    const back = await db.query(`
-                        insert into insurance (
-                            company,
-                            type,
-                            insurance_from,
-                            insurance_upto,
-                            policy_no
+                    if (single_row.rows[0].insurance_company != null) {
+                        const back = await db.query(`
+                            insert into insurance (
+                                company,
+                                type,
+                                insurance_from,
+                                insurance_upto,
+                                policy_no
+                            )
+                            values (
+                                $1, $2, $3, $4, $5
+                            )
+                            returning *;
+                        `, [insurance_company, insurance_type, from, upto, policy_no]
                         )
-                        values (
-                            $1, $2, $3, $4, $5
-                        )
-                        returning *;
-                    `, [insurance_company, insurance_type, from, upto, policy_no]
-                    )
-                    insurance_id = back.rows[0].id;
+                        insurance_id = back.rows[0].id;
+                        console.log(back.rows[0])   
+                    } else {
+                        insurance_list.push(single_row.rows[0].id)
+                    }
                 } catch (error) {
                     handleError(error, `failed adding row in insurance table`)
                 }
 
                 // step 5: add rows to vehicle table
                 try {
-                    await db.query(`
+                    const back = await db.query(`
                         insert into vehicle (
                             registration_no,
                             registration_date,
                             chasis_no,
                             engine_no,
-                            vehicle_class,
+                            class,
                             fuel_type,
                             seating_capacity,
                             cubic_capacity,
@@ -189,11 +207,14 @@ async function distribute_rows() {
                             financier_id,
                             insurance_id
                         ]
-                    )
+                    );
+                    console.log(back.rows[0])
                 } catch (error) {
                     handleError(error, `failed adding row in vehicle table`)
                 }
-                wait(100000);
+                console.log("_______________________________________________________________________________________________________________________")
+                console.log("_______________________________________________________________________________________________________________________")
+                wait(100);
             }
         } catch (error) {
             handleError(error, "")
